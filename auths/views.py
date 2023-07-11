@@ -46,6 +46,13 @@ class OAuthTokenObtainView(APIView):
         'kakao': '',
     }
 
+### Todo: 보안을 위해 값을 숨길 것
+    def get_client_id(self, provider):
+        return self.client_id[provider]
+    
+    def get_client_secret(self, provider):
+        return self.client_secret[provider]
+
     def request_access_token(self, provider: str, access_code: str) -> dict:
         if provider == 'github':
             return requests.post(
@@ -54,8 +61,8 @@ class OAuthTokenObtainView(APIView):
                     'Accept': 'application/json'
                 },
                 params={
-                    'client_id': self.client_id[provider],
-                    'client_secret': self.client_secret[provider],
+                    'client_id': self.get_client_id(provider),
+                    'client_secret': self.get_client_secret(provider),
                     'code': access_code,
                 }
             ).json()
@@ -67,12 +74,11 @@ class OAuthTokenObtainView(APIView):
                 },
                 data={
                     'grant_type': 'authorization_code',
-                    'client_id': self.client_id[provider],
+                    'client_id': self.get_client_id(provider),
                     'redirect_uri': self.redirect_uri[provider],
                     'code': access_code,
                 }
             ).json()
-
     
     def is_access_token_error(self, provider: str, response: dict) -> bool:
         if provider in ('github', 'kakao',):
@@ -87,58 +93,53 @@ class OAuthTokenObtainView(APIView):
             return response.get('access_token')
     
     def reqeust_email(self, provider, access_token) -> Union[str, None]:
+        return requests.get(
+            self.email_uri[provider],
+            headers={
+                'Authorization': f'Bearer {access_token}'
+            }
+        ).json()
+
+### Todo: email 요청 response의 유효성 검사 구현 
+    def is_email_error(self, provider, response):
+        return False
+    
+    def get_email(self, provider, response):
         if provider == 'github':
-            emails = requests.get(
-                self.email_uri[provider],
-                headers={
-                    'Authorization': f'Bearer {access_token}'
-                }
-            ).json()
-            return next(email for email in emails if email['primary']).get('email')
-        if provider == 'kakao':
-            return requests.get(
-                self.email_uri[provider],
-                headers={
-                    'Authorization': f'Bearer {access_token}'
-                }
-            ).json()['kakao_account']['email']
+            return next(email for email in response if email['primary']).get('email')
+        elif provider == 'kakao':
+            return response['kakao_account']['email']
+
 
     def post(self, request, provider: str) -> Response:
-        # OAuth 제공 업체 이름의 유효성 검사
-        if provider not in OAUTH_PROVIDER:
-            return Response(
-                {
-                'detail': 'Invalid Provider'
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        # access code <-> access token 교환
+        # OAuth 제공 업체 이름, 요청 body의 유효성 검사
         access_code = request.data.get('code')
-        if access_code is None:
+        if (access_code is None) or (provider not in OAUTH_PROVIDER):
             return Response(
                 {
-                    'detail': 'Request data form is not valid',
+                    'detail': 'Request form is not valid',
                 },
                 status=status.HTTP_400_BAD_REQUEST,
             )
         
+        # access code <-> access token 교환
         response = self.request_access_token(provider, access_code)
         if self.is_access_token_error(provider, response):
             return Response(
                 {
                     'detail': self.get_access_token_error(provider, response)
                 },
-                status=status.HTTP_400_BAD_REQUEST,
+                status=status.HTTP_401_UNAUTHORIZED,
             )
         access_token = self.get_access_token(provider, response)
 
         # OAuth 제공 업체 provider에게 email 요청
-        email = self.reqeust_email(provider, access_token)
-        if email is None:
+        response = self.reqeust_email(provider, access_token)
+        if self.is_email_error(provider, response):
             return Response({
-                'detail': 'email 찾을 수 없음',
+                'detail': 'email 찾을 수 없음', # 인증이 유효하지 않던가...
             })
+        email = self.get_email(provider, response)
 
         # 인증된 email로 사용자 정보 탐색
         try:
