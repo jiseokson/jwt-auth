@@ -22,28 +22,33 @@ class OAuthTokenObtainView(APIView):
     redirect_uri = {
         'github': 'http://localhost:3000/githubCallback',
         'kakao': 'http://localhost:3000/kakaoCallback',
+        'google': ''
     }
 
     access_token_uri = {
         'github': 'https://github.com/login/oauth/access_token',
         'kakao': 'https://kauth.kakao.com/oauth/token',
+        'google': ''
     }
 
     email_uri = {
         'github': 'https://api.github.com/user/emails',
         'kakao': 'https://kapi.kakao.com/v2/user/me',
+        'google': 'https://www.googleapis.com/oauth2/v1/userinfo'
     }
 
 ### SECRET ###
     client_id = {
         'github': '9b1df8c5638f9aab5523',
-        'kakao': 'c98455cce815417ca28f9a973d9a24a7'
+        'kakao': 'c98455cce815417ca28f9a973d9a24a7',
+        'google': '',
     }
 
 ### SECRET ###
     client_secret = {
         'github': 'c00b4a7450430a65f2bbc90bfcac0d5cd85aa8d9',
         'kakao': '',
+        'google': '',
     }
 
 ### Todo: 보안을 위해 값을 숨길 것
@@ -79,6 +84,19 @@ class OAuthTokenObtainView(APIView):
                     'code': access_code,
                 }
             ).json()
+        elif provider == 'google':
+            return requests.post(
+                self.access_token_uri[provider],
+                headers={
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                data={
+                    'grant_type': 'authorization_code',
+                    'client_id': self.get_client_id(provider),
+                    'client_secret': self.get_client_secret(provider),
+                    'code': access_code,
+                }
+            ).json()
     
     def is_access_token_error(self, provider: str, response: dict) -> bool:
         if provider in ('github', 'kakao',):
@@ -89,7 +107,7 @@ class OAuthTokenObtainView(APIView):
             return response.get('error')
     
     def get_access_token(self, provider: str, response: dict) -> str:
-        if provider in ('github', 'kakao',):
+        if provider in ('github', 'kakao', 'google',):
             return response.get('access_token')
     
     def reqeust_email(self, provider, access_token) -> Union[str, None]:
@@ -109,6 +127,9 @@ class OAuthTokenObtainView(APIView):
             return next(email for email in response if email['primary']).get('email')
         elif provider == 'kakao':
             return response['kakao_account']['email']
+        elif provider == 'google':
+            print(response)
+            return None
 
 
     def post(self, request, provider: str) -> Response:
