@@ -71,7 +71,7 @@ class OAuthTokenObtainView(APIView):
                     'Authorization': f'Bearer {access_token}'
                 }
             ).json()
-            return next(email for email in emails if email['primary'])
+            return next(email for email in emails if email['primary']).get('email')
 
     def post(self, request, provider: str) -> Response:
         # OAuth 제공 업체 이름의 유효성 검사
@@ -104,13 +104,13 @@ class OAuthTokenObtainView(APIView):
         access_token = self.get_access_token(provider, response)
 
         # OAuth 제공 업체 provider에게 email 요청
-        email = self.request_email(provider, access_token)
+        email = self.reqeust_email(provider, access_token)
         if email is None:
             pass
 
         # 인증된 email로 사용자 정보 탐색
         try:
-            user = User.oauths.get(email=email)
+            user = User.oauths.filter(oauth_provider=provider).get(email=email)
         except User.DoesNotExist as e:
             pass
             # 소셜 로그인으로 가입된 회원없으니 새로 가입 유도
