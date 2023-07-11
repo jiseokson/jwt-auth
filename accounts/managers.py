@@ -2,7 +2,13 @@ from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
 
-from accounts.models import OAUTH_PROVIDER
+OAUTH_PROVIDER = [
+    'google',
+    'kakao',
+    'github',
+]
+
+OAUTH_PROVIDER_CHOICES = [(provider, provider) for provider in OAUTH_PROVIDER]
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password, **extra_fields):
@@ -31,10 +37,32 @@ class CustomUserManager(BaseUserManager):
             raise ValueError(_("Superuser must have is_superuser=True."))
         return self.create_user(email, password, **extra_fields)
 
-class OAuthUserManager(models.Manager):
+class OAuthUserManager(BaseUserManager):
     def get_queryset(self):
         return super().get_queryset().filter(oauth_provider__in=OAUTH_PROVIDER)
     
-class DefaultAuthUserManafer(models.Manager):
+    def create_user(self, email, provider, **extra_fields):
+        if not email:
+            raise ValueError(_("The Email must be set"))
+        if not provider:
+            raise ValueError(_("The OAuth provider must be set"))
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.oauth_provider = provider
+        user.set_unusable_password()
+        user.save()
+        return user
+    
+class DefaultAuthUserManager(BaseUserManager):
     def get_queryset(self):
         return super().get_queryset().filter(oauth_provider=None)
+    
+    def create_user(self, email, password, **extra_fields):
+        if not email:
+            raise ValueError(_("The Email must be set"))
+        email = self.normalize_email(email)
+        user = self.model(email=email, **extra_fields)
+        user.oauth_provider = None
+        user.set_password(password)
+        user.save()
+        return user
