@@ -22,13 +22,13 @@ class OAuthTokenObtainView(APIView):
     redirect_uri = {
         'github': 'http://localhost:3000/githubCallback',
         'kakao': 'http://localhost:3000/kakaoCallback',
-        'google': ''
+        'google': 'http://localhost:3000/googleCallback'
     }
 
     access_token_uri = {
         'github': 'https://github.com/login/oauth/access_token',
         'kakao': 'https://kauth.kakao.com/oauth/token',
-        'google': ''
+        'google': 'https://oauth2.googleapis.com/token'
     }
 
     email_uri = {
@@ -41,14 +41,14 @@ class OAuthTokenObtainView(APIView):
     client_id = {
         'github': '9b1df8c5638f9aab5523',
         'kakao': 'c98455cce815417ca28f9a973d9a24a7',
-        'google': '',
+        'google': '374838732950-m9o6ik80g35uf9j7u7mh5jrhatl8869n.apps.googleusercontent.com',
     }
 
 ### SECRET ###
     client_secret = {
         'github': 'c00b4a7450430a65f2bbc90bfcac0d5cd85aa8d9',
         'kakao': '',
-        'google': '',
+        'google': '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',
     }
 
 ### Todo: 보안을 위해 값을 숨길 것
@@ -94,6 +94,7 @@ class OAuthTokenObtainView(APIView):
                     'grant_type': 'authorization_code',
                     'client_id': self.get_client_id(provider),
                     'client_secret': self.get_client_secret(provider),
+                    'redirect_uri': self.redirect_uri[provider],
                     'code': access_code,
                 }
             ).json()
@@ -122,15 +123,14 @@ class OAuthTokenObtainView(APIView):
     def is_email_error(self, provider, response):
         return False
     
+### Todo: 유효하지 않은 요청에 대해서 에러가 응답될수도 있음 -> 에러 처리
     def get_email(self, provider, response):
         if provider == 'github':
             return next(email for email in response if email['primary']).get('email')
         elif provider == 'kakao':
             return response['kakao_account']['email']
         elif provider == 'google':
-            print(response)
-            return None
-
+            return response['email']
 
     def post(self, request, provider: str) -> Response:
         # OAuth 제공 업체 이름, 요청 body의 유효성 검사
