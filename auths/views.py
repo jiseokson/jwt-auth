@@ -19,22 +19,31 @@ class OAuthTokenObtainView(APIView):
     allowed_methods = ('POST',)
     permission_classes = (AllowAny,)
 
+    redirect_uri = {
+        'github': 'http://localhost:3000/githubCallback',
+        'kakao': 'http://localhost:3000/kakaoCallback',
+    }
+
     access_token_uri = {
         'github': 'https://github.com/login/oauth/access_token',
+        'kakao': 'https://kauth.kakao.com/oauth/token',
     }
 
     email_uri = {
         'github': 'https://api.github.com/user/emails',
+        'kakao': 'https://kapi.kakao.com/v2/user/me',
     }
 
 ### SECRET ###
     client_id = {
         'github': '9b1df8c5638f9aab5523',
+        'kakao': 'c98455cce815417ca28f9a973d9a24a7'
     }
 
 ### SECRET ###
     client_secret = {
-        'github': 'c00b4a7450430a65f2bbc90bfcac0d5cd85aa8d9'
+        'github': 'c00b4a7450430a65f2bbc90bfcac0d5cd85aa8d9',
+        'kakao': '',
     }
 
     def request_access_token(self, provider: str, access_code: str) -> dict:
@@ -50,17 +59,31 @@ class OAuthTokenObtainView(APIView):
                     'code': access_code,
                 }
             ).json()
+        elif provider == 'kakao':
+            return requests.post(
+                self.access_token_uri[provider],
+                headers={
+                    'Content-type': 'application/x-www-form-urlencoded;charset=utf-8'
+                },
+                data={
+                    'grant_type': 'authorization_code',
+                    'client_id': self.client_id[provider],
+                    'redirect_uri': self.redirect_uri[provider],
+                    'code': access_code,
+                }
+            ).json()
+
     
     def is_access_token_error(self, provider: str, response: dict) -> bool:
-        if provider == 'github':
+        if provider in ('github', 'kakao',):
             return response.get('error') is not None
     
     def get_access_token_error(self, provider: str, response: dict) -> str:
-        if provider == 'github':
+        if provider in ('github', 'kakao',):
             return response.get('error')
     
     def get_access_token(self, provider: str, response: dict) -> str:
-        if provider == 'github':
+        if provider in ('github', 'kakao',):
             return response.get('access_token')
     
     def reqeust_email(self, provider, access_token) -> Union[str, None]:
@@ -72,6 +95,13 @@ class OAuthTokenObtainView(APIView):
                 }
             ).json()
             return next(email for email in emails if email['primary']).get('email')
+        if provider == 'kakao':
+            return requests.get(
+                self.email_uri[provider],
+                headers={
+                    'Authorization': f'Bearer {access_token}'
+                }
+            ).json()['kakao_account']['email']
 
     def post(self, request, provider: str) -> Response:
         # OAuth 제공 업체 이름의 유효성 검사
@@ -106,7 +136,9 @@ class OAuthTokenObtainView(APIView):
         # OAuth 제공 업체 provider에게 email 요청
         email = self.reqeust_email(provider, access_token)
         if email is None:
-            pass
+            return Response({
+                'detail': 'email 찾을 수 없음',
+            })
 
         # 인증된 email로 사용자 정보 탐색
         try:
