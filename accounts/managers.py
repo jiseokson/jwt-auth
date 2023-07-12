@@ -11,58 +11,35 @@ OAUTH_PROVIDER = [
 OAUTH_PROVIDER_CHOICES = [(provider, provider) for provider in OAUTH_PROVIDER]
 
 class CustomUserManager(BaseUserManager):
-    def create_user(self, email, password, **extra_fields):
-        """
-        Create and save a user with the given email and password.
-        """
-        if not email:
-            raise ValueError(_("The Email must be set"))
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
+    def create_user(self, username, password, **extra_fields):
+        user = self.model(username=username, **extra_fields)
         user.set_password(password)
         user.save()
         return user
 
-    def create_superuser(self, email, password, **extra_fields):
-        """
-        Create and save a SuperUser with the given email and password.
-        """
+    def create_superuser(self, username, password, **extra_fields):
         extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
 
         if extra_fields.get("is_staff") is not True:
             raise ValueError(_("Superuser must have is_staff=True."))
-        if extra_fields.get("is_superuser") is not True:
-            raise ValueError(_("Superuser must have is_superuser=True."))
-        return self.create_user(email, password, **extra_fields)
+        return self.create_user(username, password, **extra_fields)
 
 class OAuthUserManager(BaseUserManager):
     def get_queryset(self):
         return super().get_queryset().filter(oauth_provider__in=OAUTH_PROVIDER)
     
-    def create_user(self, email, provider, **extra_fields):
-        if not email:
-            raise ValueError(_("The Email must be set"))
-        if not provider:
+    def create_user(self, oauth_id, oauth_provider, **extra_fields):
+        if not oauth_id:
+            raise ValueError(_("The ID must be set"))
+        if not oauth_provider:
             raise ValueError(_("The OAuth provider must be set"))
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.oauth_provider = provider
+        user = self.model(
+            username=(oauth_id + '@' + oauth_provider),
+            oauth_id=oauth_id,
+            oauth_provider=oauth_provider,
+            **extra_fields
+        )
         user.set_unusable_password()
-        user.save()
-        return user
-    
-class DefaultAuthUserManager(BaseUserManager):
-    def get_queryset(self):
-        return super().get_queryset().filter(oauth_provider=None)
-    
-    def create_user(self, email, password, **extra_fields):
-        if not email:
-            raise ValueError(_("The Email must be set"))
-        email = self.normalize_email(email)
-        user = self.model(email=email, **extra_fields)
-        user.oauth_provider = None
-        user.set_password(password)
         user.save()
         return user
