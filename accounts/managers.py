@@ -29,13 +29,12 @@ class OAuthUserManager(BaseUserManager):
     def get_queryset(self):
         return super().get_queryset().filter(oauth_provider__in=OAUTH_PROVIDER)
     
-    def create_user(self, oauth_id, oauth_provider, **extra_fields):
+    def create_user(self, oauth_provider, oauth_id, **extra_fields):
         if not oauth_id:
             raise ValueError(_("The ID must be set"))
         if not oauth_provider:
             raise ValueError(_("The OAuth provider must be set"))
         
-        extra_fields.setdefault('is_active', False)
         user = self.model(
             username=(oauth_id + '@' + oauth_provider),
             oauth_id=oauth_id,

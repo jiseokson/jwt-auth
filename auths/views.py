@@ -123,11 +123,11 @@ class OAuthTokenObtainView(APIView):
 
     def get_user_id(self, provider, response):
         if provider == 'github':
-            pass
+            return str(response.get('id'))
         elif provider == 'kakao':
-            pass
+            return str(response.get('id'))
         elif provider == 'google':
-            pass
+            return str(response.get('id'))
 
     def post(self, request, provider: str) -> Response:
         # OAuth 제공 업체 이름, 요청 body의 유효성 검사
@@ -163,12 +163,10 @@ class OAuthTokenObtainView(APIView):
             )
 
         # OAuth 인증으로 가입한 사용자 정보 탐색
-        register_state = 'registered'
         try:
             user = User.oauths.filter(oauth_provider=provider).get(oauth_id=oauth_id)
         except User.DoesNotExist as e:
-            User.oauths.create_user(oauth_id=oauth_id, provider=provider)
-            register_state = 'unregistered'
+            user = User.oauths.create_user(oauth_provider=provider, oauth_id=oauth_id)
          
         # JWT 발급, 응답
         refresh = RefreshToken.for_user(user)
@@ -176,7 +174,7 @@ class OAuthTokenObtainView(APIView):
             {
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
-                'register_state': register_state,
+                'register_state': user.is_register,
             },
             status=status.HTTP_200_OK,
         )

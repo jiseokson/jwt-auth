@@ -34,6 +34,10 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             'Unselect this instead of deleting accounts.'
         ),
     )
+    is_register = models.BooleanField(
+        _('register'),
+        default=False,
+    )
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
     
     oauth_id = models.CharField(

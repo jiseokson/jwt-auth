@@ -15,13 +15,13 @@ class AccountsInfo(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        user = User.objects.get(pk=request.user.get('user_id')) 
+        user = User.objects.get(pk=request.user.id) 
         return Response(UserSerializer(user).data)
     
     def post(self, request):
         user = User.objects.get(pk=request.user.get('user_id'))
         user.first_name = request.data.get('first_name')
         user.last_name = request.data.get('last_name')
-        user.is_active = True
+        user.is_register = True
         user.save()
         return Response(UserSerializer(user).data)
