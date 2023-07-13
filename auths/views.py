@@ -31,8 +31,8 @@ class OAuthTokenObtainView(APIView):
         'google': 'https://oauth2.googleapis.com/token'
     }
 
-    email_uri = {
-        'github': 'https://api.github.com/user/emails',
+    user_info_uri = {
+        'github': 'https://api.github.com/user',
         'kakao': 'https://kapi.kakao.com/v2/user/me',
         'google': 'https://www.googleapis.com/oauth2/v1/userinfo'
     }
@@ -113,22 +113,21 @@ class OAuthTokenObtainView(APIView):
         if provider in ('github', 'kakao', 'google',):
             return response.get('access_token')
     
-    def reqeust_email(self, provider, access_token) -> Union[str, None]:
+    def reqeust_user_info(self, provider, access_token) -> Union[str, None]:
         return requests.get(
-            self.email_uri[provider],
+            self.user_info_uri[provider],
             headers={
                 'Authorization': f'Bearer {access_token}'
             }
         ).json()
 
-    def get_email(self, provider, response):
+    def get_user_id(self, provider, response):
         if provider == 'github':
-            # primary가 없는 경우 존재..??
-            return next(email for email in response if email['primary']).get('email')
+            pass
         elif provider == 'kakao':
-            return response.get('kakao_account').get('email')
+            pass
         elif provider == 'google':
-            return response.get('email')
+            pass
 
     def post(self, request, provider: str) -> Response:
         # OAuth 제공 업체 이름, 요청 body의 유효성 검사
@@ -152,41 +151,24 @@ class OAuthTokenObtainView(APIView):
             )
         access_token = self.get_access_token(provider, response)
 
-        # OAuth 제공 업체 provider에게 email 요청
-        response = self.reqeust_email(provider, access_token)
-        email = self.get_email(provider, response)
-        if email is None:
+        # OAuth 제공 업체 provider에게 사용자 정보 요청
+        response = self.reqeust_user_info(provider, access_token)
+        oauth_id = self.get_user_id(provider, response)
+        if oauth_id is None:
             return Response(
                 {
-                'detail': 'Email information not found'
+                'detail': 'OAuth User ID not found'
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # OAuth 인증 email로 가입한 사용자 정보 탐색
+        # OAuth 인증으로 가입한 사용자 정보 탐색
+        register_state = 'registered'
         try:
-            user = User.oauths.filter(oauth_provider=provider).get(email=email)
+            user = User.oauths.filter(oauth_provider=provider).get(oauth_id=oauth_id)
         except User.DoesNotExist as e:
-            # 같은 email로 가입된 사용자 탐색
-            # (자체 인증 모듈 또는 같은 이메일의 다른 OAuth 인증)
-            try:
-                User.objects.get(email=email)
-            except User.DoesNotExist as e:
-                # 해당 OAuth 인증을 통해 회원가입 유도
-                return Response(
-                    {
-                        'provider': provider,
-                    },
-                    status=status.HTTP_403_FORBIDDEN
-                )
-            
-            # 같은 email로 가입된 사용자가 이미 존재한다면,
-            return Response(
-                {
-                    'detail': 'Already registered to this email'
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
+            User.oauths.create_user(oauth_id=oauth_id, provider=provider)
+            register_state = 'unregistered'
          
         # JWT 발급, 응답
         refresh = RefreshToken.for_user(user)
@@ -194,6 +176,7 @@ class OAuthTokenObtainView(APIView):
             {
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
+                'register_state': register_state,
             },
             status=status.HTTP_200_OK,
         )

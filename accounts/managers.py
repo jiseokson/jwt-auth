@@ -18,11 +18,11 @@ class CustomUserManager(BaseUserManager):
         return user
 
     def create_superuser(self, username, password, **extra_fields):
-        extra_fields.setdefault("is_staff", True)
-        extra_fields.setdefault("is_active", True)
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_active', True)
 
-        if extra_fields.get("is_staff") is not True:
-            raise ValueError(_("Superuser must have is_staff=True."))
+        if extra_fields.get('is_staff') is not True:
+            raise ValueError(_('Superuser must have is_staff=True.'))
         return self.create_user(username, password, **extra_fields)
 
 class OAuthUserManager(BaseUserManager):
@@ -34,6 +34,8 @@ class OAuthUserManager(BaseUserManager):
             raise ValueError(_("The ID must be set"))
         if not oauth_provider:
             raise ValueError(_("The OAuth provider must be set"))
+        
+        extra_fields.setdefault('is_active', False)
         user = self.model(
             username=(oauth_id + '@' + oauth_provider),
             oauth_id=oauth_id,
