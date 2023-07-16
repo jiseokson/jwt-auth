@@ -133,7 +133,7 @@ class OAuthTokenObtainView(APIView):
         
         # access code <-> access token 교환
         response = self.request_access_token(provider, access_code)
-        if response.status != 200:
+        if response.status_code != 200:
             return Response(
                 {
                     'detail': self.get_access_token_error(provider, response)
@@ -144,7 +144,7 @@ class OAuthTokenObtainView(APIView):
 
         # OAuth 제공 업체 provider에게 사용자 정보 요청
         response = self.reqeust_user_info(provider, access_token)
-        if response.status != 200:
+        if response.status_code != 200:
             return Response(
                 {
                     'detail': 'OAuth User ID not found'
