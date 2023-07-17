@@ -29,7 +29,7 @@ class AccountsInfo(APIView):
         user.track = request.data.get('track')
         user.is_register = True
         try:
-            user.save()
+            user.clean()
         except ValidationError as e:
             return Response(
                 {
@@ -37,5 +37,6 @@ class AccountsInfo(APIView):
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-
+        
+        user.save()
         return Response(UserSerializer(user).data)
