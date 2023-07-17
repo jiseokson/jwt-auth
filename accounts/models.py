@@ -83,5 +83,5 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             raise ValidationError('Invalid phone number')
         if self.track not in TRACK:
             raise ValidationError('Invalid track name')
-        if not re.match(r'^[a-zA-Z]\d{5}$', self.student_id):
+        if not re.match(r'^[a-zA-Z]\d{6}$', self.student_id):
             raise ValidationError('Invalid student ID')
