@@ -19,9 +19,12 @@ class AccountsInfo(APIView):
         return Response(UserSerializer(user).data)
     
     def post(self, request):
-        user = User.objects.get(pk=request.user.get('user_id'))
-        user.first_name = request.data.get('first_name')
-        user.last_name = request.data.get('last_name')
+        user = request.user
+        user.name = request.data.get('name')
+        user.phone = request.data.get('phone')
+        user.univ = request.data.get('univ')
+        user.student_id = request.data.get('student_id')
+        user.track = request.data.get('track')
         user.is_register = True
         user.save()
         return Response(UserSerializer(user).data)
