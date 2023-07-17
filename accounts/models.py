@@ -6,6 +6,12 @@ from django.utils.translation import gettext_lazy as _
 
 from .managers import OAUTH_PROVIDER_CHOICES, CustomUserManager, OAuthUserManager
 
+TRACK_CHOICES = (
+    ('Backend', 'Backend'),
+    ('Frontend', 'Frontend'),
+    ('Design', 'Design'),
+)
+
 class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     username = models.CharField(
@@ -17,8 +23,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             'unique': _("A user with that username already exists."),
         },
     )
-    first_name = models.CharField(_('first name'), max_length=150, blank=True)
-    last_name = models.CharField(_('last name'), max_length=150, blank=True)
+    name = models.CharField(_('name'), max_length=150, blank=True)
+    phone = models.CharField(_('phone'), max_length=20, blank=True)
+    univ = models.CharField(_('univ'), max_length=100, blank=True)
+    student_id = models.CharField(_('student id'), max_length=20, blank=True)
+    track = models.CharField(_('track'), max_length=20, choices=TRACK_CHOICES, blank=True)
     email = models.EmailField(_('email address'), blank=True)
     
     is_staff = models.BooleanField(
