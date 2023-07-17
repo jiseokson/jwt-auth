@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.parsers import JSONParser
 from rest_framework import status
 
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
@@ -21,22 +22,14 @@ class AccountsInfo(APIView):
         return Response(UserSerializer(user).data)
     
     def post(self, request):
-        user = request.user
-        user.name = request.data.get('name')
-        user.phone = request.data.get('phone')
-        user.univ = request.data.get('univ')
-        user.student_id = request.data.get('student_id')
-        user.track = request.data.get('track')
-        user.is_register = True
-        try:
-            user.clean()
-        except ValidationError as e:
-            return Response(
-                {
-                    'error': str(e)
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        
-        user.save()
-        return Response(UserSerializer(user).data)
+        serializer = UserSerializer(data=JSONParser().parse(request))
+        if serializer.is_valid():
+            user = serializer.save()
+            return Response(UserSerializer(user).data)
+        return Response(
+            {
+                'detail': serializer.errors
+            },
+            status=status.HTTP_400_BAD_REQUEST
+        )
+            
