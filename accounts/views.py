@@ -1,8 +1,10 @@
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
 
 from rest_framework_simplejwt.tokens import AccessToken, RefreshToken
 
@@ -26,5 +28,14 @@ class AccountsInfo(APIView):
         user.student_id = request.data.get('student_id')
         user.track = request.data.get('track')
         user.is_register = True
-        user.save()
+        try:
+            user.save()
+        except ValidationError as e:
+            return Response(
+                {
+                    'error': str(e)
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         return Response(UserSerializer(user).data)

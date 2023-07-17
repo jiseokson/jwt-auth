@@ -1,3 +1,5 @@
+import re
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.db import models
 from django.db.models.query import QuerySet
@@ -6,11 +8,13 @@ from django.utils.translation import gettext_lazy as _
 
 from .managers import OAUTH_PROVIDER_CHOICES, CustomUserManager, OAuthUserManager
 
-TRACK_CHOICES = (
-    ('Backend', 'Backend'),
-    ('Frontend', 'Frontend'),
-    ('Design', 'Design'),
+TRACK = (
+    'Backend',
+    'Frontend',
+    'Design'
 )
+
+TRACK_CHOICES = [(t, t) for t in TRACK]
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
 
@@ -71,3 +75,13 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+    
+    def clean(self):
+        super().clean()
+
+        if not re.match(r'^010-\d{4}-\d{4}$', self.phone):
+            raise ValidationError('Invalid phone number')
+        if self.track not in TRACK:
+            raise ValidationError('Invalid track name')
+        if not re.match(r'^[a-zA-Z]\d{5}$', self.student_id):
+            raise ValidationError('Invalid student ID')
