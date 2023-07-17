@@ -70,7 +70,7 @@ class OAuthTokenObtainView(APIView):
                     'client_secret': self.get_client_secret(provider),
                     'code': access_code,
                 }
-            ).json()
+            )
         elif provider == 'kakao':
             return requests.post(
                 self.access_token_uri[provider],
@@ -83,7 +83,7 @@ class OAuthTokenObtainView(APIView):
                     'redirect_uri': self.redirect_uri[provider],
                     'code': access_code,
                 }
-            ).json()
+            )
         elif provider == 'google':
             return requests.post(
                 self.access_token_uri[provider],
@@ -97,12 +97,7 @@ class OAuthTokenObtainView(APIView):
                     'redirect_uri': self.redirect_uri[provider],
                     'code': access_code,
                 }
-            ).json()
-    
-    def is_access_token_error(self, provider: str, response: dict) -> bool:
-        # !!! google의 에러코드 확인된 적 없음
-        if provider in ('github', 'kakao', 'google',):
-            return response.get('error') is not None
+            )
     
     def get_access_token_error(self, provider: str, response: dict) -> str:
         # !!! google의 에러코드 확인된 적 없음
@@ -119,16 +114,12 @@ class OAuthTokenObtainView(APIView):
             headers={
                 'Authorization': f'Bearer {access_token}'
             }
-        ).json()
+        )
 
     def get_user_id(self, provider, response):
-        if provider == 'github':
+        if provider in ('github', 'kakao', 'google',):
             return str(response.get('id'))
-        elif provider == 'kakao':
-            return str(response.get('id'))
-        elif provider == 'google':
-            return str(response.get('id'))
-
+        
     def post(self, request, provider: str) -> Response:
         # OAuth 제공 업체 이름, 요청 body의 유효성 검사
         access_code = request.data.get('code')
@@ -142,31 +133,28 @@ class OAuthTokenObtainView(APIView):
         
         # access code <-> access token 교환
         response = self.request_access_token(provider, access_code)
-        if self.is_access_token_error(provider, response):
+        if response.status != 200:
             return Response(
                 {
                     'detail': self.get_access_token_error(provider, response)
                 },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
-        access_token = self.get_access_token(provider, response)
+        access_token = self.get_access_token(provider, response.json())
 
         # OAuth 제공 업체 provider에게 사용자 정보 요청
         response = self.reqeust_user_info(provider, access_token)
-        oauth_id = self.get_user_id(provider, response)
-        if oauth_id is None:
+        if response.status != 200:
             return Response(
                 {
-                'detail': 'OAuth User ID not found'
+                    'detail': 'OAuth User ID not found'
                 },
                 status=status.HTTP_404_NOT_FOUND,
             )
+        oauth_id = self.get_user_id(provider, response.json())
 
         # OAuth 인증으로 가입한 사용자 정보 탐색
-        try:
-            user = User.oauths.filter(oauth_provider=provider).get(oauth_id=oauth_id)
-        except User.DoesNotExist as e:
-            user = User.oauths.create_user(oauth_provider=provider, oauth_id=oauth_id)
+        user = User.oauths.get_or_create(oauth_provider=provider, oauth_id=oauth_id)
          
         # JWT 발급, 응답
         refresh = RefreshToken.for_user(user)
