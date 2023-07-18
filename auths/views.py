@@ -136,7 +136,7 @@ class OAuthTokenObtainView(APIView):
         if response.status_code != 200:
             return Response(
                 {
-                    'detail': self.get_access_token_error(provider, response)
+                    'detail': self.get_access_token_error(provider, response.json())
                 },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
@@ -154,8 +154,11 @@ class OAuthTokenObtainView(APIView):
         oauth_id = self.get_user_id(provider, response.json())
 
         # OAuth 인증으로 가입한 사용자 정보 탐색
-        user = User.oauths.get_or_create(oauth_provider=provider, oauth_id=oauth_id)
-         
+        try:
+            user = User.oauths.filter(oauth_provider=provider).get(oauth_id=oauth_id)
+        except User.DoesNotExist as e:
+            user = User.oauths.create_user(oauth_provider=provider, oauth_id=oauth_id)
+        
         # JWT 발급, 응답
         refresh = RefreshToken.for_user(user)
         return Response(
