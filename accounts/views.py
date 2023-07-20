@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 
-from accounts.serializer import UserRegistSerializer, UserSerializer
+from accounts.serializer import UserSerializer
 
 User = get_user_model()
 
@@ -21,14 +21,9 @@ class AccountsInfo(APIView):
         user = request.user
         data = request.data
 
-        register_serializer = UserRegistSerializer(user, data=data, partial=True)
-        if not register_serializer.is_valid():
-            return Response(
-                {
-                    **register_serializer.errors
-                },
-                status=status.HTTP_400_BAD_REQUEST
-            )
+        serializer = UserSerializer(user, data=data, partial=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
-        register_serializer.save(is_register=True)
+        serializer.save(is_register=True)
         return Response(UserSerializer(user).data)

@@ -10,11 +10,6 @@ class UserSerializer(serializers.ModelSerializer):
         model = get_user_model()
         exclude = ['password', 'groups', 'user_permissions',]
 
-class UserRegistSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = get_user_model()
-        fields = ['name', 'phone', 'univ', 'track', 'student_id']
-
     def validate(self, data):
         if not re.match(r'^010-\d{4}-\d{4}$', data.get('phone')):
             raise ValidationError('Invalid phone number')
