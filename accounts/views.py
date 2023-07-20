@@ -15,8 +15,7 @@ class AccountsInfo(APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request):
-        user = User.objects.get(pk=request.user.id) 
-        return Response(UserSerializer(user).data)
+        return Response(UserSerializer(request.user).data)
     
     def post(self, request):
         user = request.user
