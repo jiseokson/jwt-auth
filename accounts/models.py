@@ -76,12 +76,3 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     def __str__(self):
         return self.username
     
-    def clean(self):
-        super().clean()
-
-        if not re.match(r'^010-\d{4}-\d{4}$', self.phone):
-            raise ValidationError('Invalid phone number')
-        if self.track not in TRACK:
-            raise ValidationError('Invalid track name')
-        if not re.match(r'^[a-zA-Z]\d{6}$', self.student_id):
-            raise ValidationError('Invalid student ID')

@@ -10,11 +10,18 @@ class UserSerializer(serializers.ModelSerializer):
         model = get_user_model()
         exclude = ['password', 'groups', 'user_permissions',]
 
-    def validate(self, data):
-        if not re.match(r'^010-\d{4}-\d{4}$', data.get('phone')):
+    def validate_phone(self, data):
+        if not re.match(r'^010-\d{4}-\d{4}$', data):
             raise ValidationError('Invalid phone number')
-        if data.get('track') not in TRACK:
+        return data
+    
+    def validate_track(self, data):
+        if data not in TRACK:
             raise ValidationError('Invalid track name')
-        if not re.match(r'^[a-zA-Z]\d{6}$', data.get('student_id')):
+        return data
+    
+    def validate_student_id(self, data):
+        if not re.match(r'^[a-zA-Z]\d{6}$', data):
             raise ValidationError('Invalid student ID')
         return data
+    

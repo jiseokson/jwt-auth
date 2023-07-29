@@ -16,9 +16,16 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
+from rest_framework_simplejwt.views import TokenRefreshView
+from accounts.views import AccountsInfo
+
+from auths.views import OAuthTokenObtainView
+
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    path('auth/', include('auths.urls', namespace='auths')),
-    path('accounts', include('accounts.urls', namespace='accounts')),
+    path('auth/<str:provider>/token', OAuthTokenObtainView.as_view(), name='token_obtain'),
+    path('auth/refresh', TokenRefreshView.as_view(), name='token_refresh'),
+
+    path('accounts', AccountsInfo.as_view(), name='info'),
 ]
