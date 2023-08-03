@@ -8,13 +8,6 @@ from django.utils.translation import gettext_lazy as _
 
 from .managers import OAUTH_PROVIDER_CHOICES, CustomUserManager, OAuthUserManager
 
-TRACK = (
-    'Backend',
-    'Frontend',
-    'Design'
-)
-
-TRACK_CHOICES = [(t, t) for t in TRACK]
 
 class CustomUser(AbstractBaseUser, PermissionsMixin):
 
@@ -27,17 +20,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             'unique': _("A user with that username already exists."),
         },
     )
-    name = models.CharField(_('name'), max_length=150, blank=True)
-    phone = models.CharField(_('phone'), max_length=20, blank=True)
-    univ = models.CharField(_('univ'), max_length=100, blank=True)
-    student_id = models.CharField(_('student id'), max_length=20, blank=True)
-    track = models.CharField(_('track'), max_length=20, choices=TRACK_CHOICES, blank=True)
-    email = models.EmailField(_('email address'), blank=True)
-    
+
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,
-        help_text=_('Designates whether the user can log into this admin site.'),
+        help_text=_(
+            'Designates whether the user can log into this admin site.'),
     )
     is_active = models.BooleanField(
         _('active'),
@@ -52,7 +40,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         default=False,
     )
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
-    
+
     oauth_id = models.CharField(
         _('oauth id'),
         max_length=128,
@@ -66,13 +54,11 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         default=None,
         null=True, blank=True,
     )
-    
+
     USERNAME_FIELD = 'username'
-    EMAIL_FIELD = 'email'
 
     objects = CustomUserManager()
     oauths = OAuthUserManager()
 
     def __str__(self):
         return self.username
-    

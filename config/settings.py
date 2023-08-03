@@ -39,10 +39,14 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    # Custom apps
     'accounts',
+    'certifications',
+    'devices',
+    'donations',
+    'points',
+    'profiles',
+    'programs',
 
-    # installed packages
     'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt'
