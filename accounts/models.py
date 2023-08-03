@@ -8,6 +8,7 @@ from django.utils.translation import gettext_lazy as _
 
 from .managers import OAUTH_PROVIDER_CHOICES, CustomUserManager, OAuthUserManager
 
+
 class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     username = models.CharField(
@@ -19,11 +20,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
             'unique': _("A user with that username already exists."),
         },
     )
-    
+
     is_staff = models.BooleanField(
         _('staff status'),
         default=False,
-        help_text=_('Designates whether the user can log into this admin site.'),
+        help_text=_(
+            'Designates whether the user can log into this admin site.'),
     )
     is_active = models.BooleanField(
         _('active'),
@@ -38,7 +40,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         default=False,
     )
     date_joined = models.DateTimeField(_('date joined'), default=timezone.now)
-    
+
     oauth_id = models.CharField(
         _('oauth id'),
         max_length=128,
@@ -52,7 +54,7 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         default=None,
         null=True, blank=True,
     )
-    
+
     USERNAME_FIELD = 'username'
 
     objects = CustomUserManager()
@@ -60,4 +62,3 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
-    
