@@ -11,14 +11,15 @@ from .permissions import IsConsumerOrReadOnly
 class ProgramViewSet(ModelViewSet):
     queryset = Program.objects.order_by('-created_at')
     serializer_class = ProgramSerializer
-    # permission_classes = [IsAuthenticatedOrReadOnly, IsConsumerOrReadOnly]
-    permission_classes = [AllowAny,]  # AllowAny
+    permission_classes = [IsAuthenticatedOrReadOnly, IsConsumerOrReadOnly]
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
     @action(detail=True, methods=('POST', 'DELETE'))
     def subscribe(self, request, *args, **kwargs):
+        # todo: 신청자 받아주는 조건 유효성 검사
+        # 프로그램의 등록 상태, 등록 인원 등의 조건 검사 => 분기하여 처리
         program = self.get_object()
 
         if request.method == 'POST':
